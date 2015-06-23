@@ -1,26 +1,42 @@
 package common
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 )
 
+var logger *log.Logger
+
 // Service interface
 type Service interface {
+	Name() string
 	Start() error
 	Stop() error
 }
 
 // Serve starts a service, and stops it if recieve INT or TERM signal.
 func Serve(s Service) {
+
+	logf := func(format string, v ...interface{}) {
+		name := s.Name()
+		msg := fmt.Sprintf(format, v...)
+		msg = fmt.Sprintf("[Service %s] %s", name, msg)
+		if logger != nil {
+			logger.Println(msg)
+		} else {
+			log.Println(msg)
+		}
+	}
+
 	signalCh := make(chan os.Signal, 1)
 	exitCh := make(chan bool)
 
 	go func() {
 		sig := <-signalCh
-		log.Printf("recieve signal: %s", sig)
+		logf("recieve signal: %s", sig)
 		exitCh <- true
 	}()
 
@@ -28,21 +44,21 @@ func Serve(s Service) {
 	signal.Notify(signalCh, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		log.Printf("start service")
+		logf("started")
 		err := s.Start()
 		if err != nil {
-			log.Printf("service ended with error: %s", err)
+			logf("ended unexpectely: %s", err)
 		} else {
-			log.Printf("service ended")
+			logf("ended")
 		}
 		exitCh <- true
 	}()
 
 	<-exitCh
 
-	log.Printf("stopping service...")
+	logf("stopping...")
 	if err := s.Stop(); err != nil {
-		log.Fatalf("servic ended with error: %s", err)
+		logf("stopped with error: %s", err)
 	}
-	log.Printf("Bye-bye!")
+	logf("Bye-bye!")
 }
