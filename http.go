@@ -43,6 +43,19 @@ func FilterHandler(filter Filter, handler http.Handler) http.Handler {
 		})
 }
 
+type filterHandler struct {
+	filter  Filter
+	handler http.Handler
+}
+
+func (fh *filterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if fh.filter == nil {
+		fh.handler.ServeHTTP(w, r)
+		return
+	}
+	fh.filter.Filter(w, r, fh.handler)
+}
+
 // Combine2Filters combines 2 Filters into a single Filter.
 func Combine2Filters(first Filter, second Filter) Filter {
 	// return the other if one is nil
@@ -54,9 +67,11 @@ func Combine2Filters(first Filter, second Filter) Filter {
 		return first
 	}
 
+	nnext := &filterHandler{filter: second}
 	return FilterFunc(
 		func(w http.ResponseWriter, req *http.Request, next http.Handler) {
-			nnext := FilterHandler(second, next)
+			// nnext := FilterHandler(second, next)
+			nnext.handler = next
 			first.Filter(w, req, nnext)
 		})
 }
@@ -79,7 +94,7 @@ func CombineFilters(filters ...Filter) Filter {
 // contains these Filters and calls Handler finally.
 func Handler(handler http.Handler, filters ...Filter) http.Handler {
 	filter := CombineFilters(filters...)
-	return FilterHandler(filter, handler)
+	return &filterHandler{filter: filter, handler: handler}
 }
 
 // Handler combine all Filters and the HandlerFunc into a new Handler which
