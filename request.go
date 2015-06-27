@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"encoding/xml"
+	"fmt"
 	"net/http"
 )
 
@@ -52,4 +53,16 @@ func PostXML(url string, v interface{}) (*http.Response, error) {
 	}
 	resp, err := http.Post(url, "application/json; charset=utf-8", buffer)
 	return resp, err
+}
+
+func GetJSON(url string, v interface{}) error {
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	if resp.Body == nil {
+		return fmt.Errorf("empty response body")
+	}
+	defer resp.Body.Close()
+	return json.NewDecoder(resp.Body).Decode(v)
 }
