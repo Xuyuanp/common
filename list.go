@@ -44,8 +44,11 @@ func (s *stack) Push(v interface{}) {
 
 func (s *stack) Pop() interface{} {
 	e := s.Back()
-	s.Remove(e)
-	return e.Value
+	if e != nil {
+		s.Remove(e)
+		return e.Value
+	}
+	return nil
 }
 
 func (s *stack) Reset() {
@@ -70,8 +73,11 @@ func (q *queue) Push(v interface{}) {
 
 func (q *queue) Pop() interface{} {
 	e := q.List.Front()
-	q.List.Remove(e)
-	return e.Value
+	if e != nil {
+		q.List.Remove(e)
+		return e.Value
+	}
+	return nil
 }
 
 func (q *queue) Len() int {
